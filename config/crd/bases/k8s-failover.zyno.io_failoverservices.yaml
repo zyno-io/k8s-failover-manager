@@ -1,0 +1,2269 @@
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.20.1
+  name: failoverservices.k8s-failover.zyno.io
+spec:
+  group: k8s-failover.zyno.io
+  names:
+    kind: FailoverService
+    listKind: FailoverServiceList
+    plural: failoverservices
+    singular: failoverservice
+  scope: Namespaced
+  versions:
+  - additionalPrinterColumns:
+    - jsonPath: .spec.serviceName
+      name: Service
+      type: string
+    - jsonPath: .spec.failoverActive
+      name: Failover Active
+      type: boolean
+    - jsonPath: .status.transition.phase
+      name: Phase
+      type: string
+    - jsonPath: .status.activeCluster
+      name: Active Cluster
+      type: string
+    - jsonPath: .status.activeGeneration
+      name: Generation
+      type: integer
+    - jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: FailoverService is the Schema for the failoverservices API.
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: spec defines the desired state of FailoverService
+            properties:
+              failoverActive:
+                description: |-
+                  failoverActive indicates whether the failover target should be active.
+                  When false, traffic routes to the primary target; when true, to the failover target.
+                type: boolean
+              failoverCluster:
+                description: failoverCluster defines the failover cluster target.
+                properties:
+                  failoverModeAddress:
+                    description: failoverModeAddress is the address the local Service
+                      gets set to in failover mode.
+                    minLength: 1
+                    type: string
+                  onFailback:
+                    description: onFailback defines actions to run when transitioning
+                      back to primary.
+                    properties:
+                      postActions:
+                        description: postActions are executed after connection flushing.
+                        items:
+                          description: |-
+                            FailoverAction defines a single action to execute during a transition.
+                            Exactly one of http, job, scale, waitReady, or waitRemote must be set.
+                          properties:
+                            http:
+                              description: http defines an HTTP request action.
+                              properties:
+                                body:
+                                  description: body is the request body.
+                                  type: string
+                                headers:
+                                  additionalProperties:
+                                    type: string
+                                  description: headers are additional HTTP headers
+                                    to include.
+                                  type: object
+                                method:
+                                  default: GET
+                                  description: method is the HTTP method. Defaults
+                                    to GET.
+                                  type: string
+                                timeoutSeconds:
+                                  description: timeoutSeconds is the HTTP request
+                                    timeout. Defaults to 30.
+                                  format: int64
+                                  minimum: 1
+                                  type: integer
+                                url:
+                                  description: url is the target URL.
+                                  minLength: 1
+                                  type: string
+                              required:
+                              - url
+                              type: object
+                            ignoreFailure:
+                              description: ignoreFailure allows the pipeline to continue
+                                even if this action fails.
+                              type: boolean
+                            job:
+                              description: job defines a Kubernetes Job action.
+                              properties:
+                                activeDeadlineSeconds:
+                                  description: activeDeadlineSeconds is the Job timeout.
+                                    Defaults to 300.
+                                  format: int64
+                                  minimum: 1
+                                  type: integer
+                                command:
+                                  description: command overrides the container entrypoint.
+                                  items:
+                                    type: string
+                                  type: array
+                                env:
+                                  description: env defines environment variables for
+                                    the Job container.
+                                  items:
+                                    description: EnvVar defines an environment variable
+                                      for a Job container.
+                                    properties:
+                                      name:
+                                        description: name is the environment variable
+                                          name.
+                                        type: string
+                                      value:
+                                        description: value is the environment variable
+                                          value.
+                                        type: string
+                                    required:
+                                    - name
+                                    - value
+                                    type: object
+                                  type: array
+                                image:
+                                  description: image is the container image to use.
+                                  type: string
+                                maxRetries:
+                                  description: maxRetries maps to Job backoffLimit.
+                                    Defaults to 0 (no retry).
+                                  format: int32
+                                  maximum: 10
+                                  minimum: 0
+                                  type: integer
+                                script:
+                                  description: script wraps the provided script in
+                                    /bin/sh -c.
+                                  type: string
+                                serviceAccountName:
+                                  description: serviceAccountName is the service account
+                                    for the Job pod.
+                                  type: string
+                              required:
+                              - image
+                              type: object
+                            maxRetries:
+                              description: maxRetries overrides the default number
+                                of transient-error retries for this action. Defaults
+                                to 5.
+                              format: int32
+                              maximum: 50
+                              minimum: 0
+                              type: integer
+                            name:
+                              description: name is a human-readable identifier for
+                                this action.
+                              minLength: 1
+                              type: string
+                            retryIntervalSeconds:
+                              description: retryIntervalSeconds overrides the default
+                                retry/poll interval for this action. Defaults to 5.
+                              format: int64
+                              maximum: 300
+                              minimum: 1
+                              type: integer
+                            scale:
+                              description: scale defines a scale action for a Deployment
+                                or StatefulSet.
+                              properties:
+                                kind:
+                                  description: 'kind is the resource kind: "Deployment"
+                                    or "StatefulSet".'
+                                  enum:
+                                  - Deployment
+                                  - StatefulSet
+                                  type: string
+                                name:
+                                  description: name is the resource name.
+                                  type: string
+                                replicas:
+                                  description: replicas is the desired replica count.
+                                  format: int32
+                                  minimum: 0
+                                  type: integer
+                                timeoutSeconds:
+                                  description: timeoutSeconds is how long to wait
+                                    for readiness when waitReady is true. Defaults
+                                    to 300.
+                                  format: int64
+                                  minimum: 1
+                                  type: integer
+                                waitReady:
+                                  description: waitReady causes the action to poll
+                                    until the resource is fully ready after scaling.
+                                  type: boolean
+                              required:
+                              - kind
+                              - name
+                              - replicas
+                              type: object
+                            waitReady:
+                              description: waitReady waits for a Deployment or StatefulSet
+                                to become fully ready.
+                              properties:
+                                kind:
+                                  description: 'kind is the resource kind: "Deployment"
+                                    or "StatefulSet".'
+                                  enum:
+                                  - Deployment
+                                  - StatefulSet
+                                  type: string
+                                name:
+                                  description: name is the resource name.
+                                  type: string
+                                timeoutSeconds:
+                                  description: timeoutSeconds is how long to wait
+                                    before failing. Defaults to 300.
+                                  format: int64
+                                  minimum: 1
+                                  type: integer
+                              required:
+                              - kind
+                              - name
+                              type: object
+                            waitRemote:
+                              description: waitRemote waits for the remote cluster
+                                to reach a specific phase or complete a named action.
+                              properties:
+                                actionName:
+                                  description: actionName waits for a named action
+                                    on the remote cluster to complete.
+                                  type: string
+                                actionTimeoutSeconds:
+                                  description: actionTimeoutSeconds is the timeout
+                                    for waiting for the condition. Defaults to 300.
+                                  format: int64
+                                  minimum: 1
+                                  type: integer
+                                connectTimeoutSeconds:
+                                  description: connectTimeoutSeconds is the timeout
+                                    for connecting to the remote cluster. Defaults
+                                    to 10.
+                                  format: int64
+                                  minimum: 1
+                                  type: integer
+                                phase:
+                                  description: |-
+                                    phase waits for the remote cluster's transition to reach or pass this phase.
+                                    An empty string means idle (no transition in progress).
+                                  enum:
+                                  - ""
+                                  - ExecutingPreActions
+                                  - UpdatingResources
+                                  - FlushingConnections
+                                  - ExecutingPostActions
+                                  type: string
+                              type: object
+                              x-kubernetes-validations:
+                              - message: exactly one of phase or actionName must be
+                                  set
+                                rule: '(has(self.phase) ? 1 : 0) + (has(self.actionName)
+                                  ? 1 : 0) == 1'
+                          required:
+                          - name
+                          type: object
+                          x-kubernetes-validations:
+                          - message: exactly one of http, job, scale, waitReady, or
+                              waitRemote must be set
+                            rule: '(has(self.http) ? 1 : 0) + (has(self.job) ? 1 :
+                              0) + (has(self.scale) ? 1 : 0) + (has(self.waitReady)
+                              ? 1 : 0) + (has(self.waitRemote) ? 1 : 0) == 1'
+                        type: array
+                      preActions:
+                        description: preActions are executed before the Service update.
+                        items:
+                          description: |-
+                            FailoverAction defines a single action to execute during a transition.
+                            Exactly one of http, job, scale, waitReady, or waitRemote must be set.
+                          properties:
+                            http:
+                              description: http defines an HTTP request action.
+                              properties:
+                                body:
+                                  description: body is the request body.
+                                  type: string
+                                headers:
+                                  additionalProperties:
+                                    type: string
+                                  description: headers are additional HTTP headers
+                                    to include.
+                                  type: object
+                                method:
+                                  default: GET
+                                  description: method is the HTTP method. Defaults
+                                    to GET.
+                                  type: string
+                                timeoutSeconds:
+                                  description: timeoutSeconds is the HTTP request
+                                    timeout. Defaults to 30.
+                                  format: int64
+                                  minimum: 1
+                                  type: integer
+                                url:
+                                  description: url is the target URL.
+                                  minLength: 1
+                                  type: string
+                              required:
+                              - url
+                              type: object
+                            ignoreFailure:
+                              description: ignoreFailure allows the pipeline to continue
+                                even if this action fails.
+                              type: boolean
+                            job:
+                              description: job defines a Kubernetes Job action.
+                              properties:
+                                activeDeadlineSeconds:
+                                  description: activeDeadlineSeconds is the Job timeout.
+                                    Defaults to 300.
+                                  format: int64
+                                  minimum: 1
+                                  type: integer
+                                command:
+                                  description: command overrides the container entrypoint.
+                                  items:
+                                    type: string
+                                  type: array
+                                env:
+                                  description: env defines environment variables for
+                                    the Job container.
+                                  items:
+                                    description: EnvVar defines an environment variable
+                                      for a Job container.
+                                    properties:
+                                      name:
+                                        description: name is the environment variable
+                                          name.
+                                        type: string
+                                      value:
+                                        description: value is the environment variable
+                                          value.
+                                        type: string
+                                    required:
+                                    - name
+                                    - value
+                                    type: object
+                                  type: array
+                                image:
+                                  description: image is the container image to use.
+                                  type: string
+                                maxRetries:
+                                  description: maxRetries maps to Job backoffLimit.
+                                    Defaults to 0 (no retry).
+                                  format: int32
+                                  maximum: 10
+                                  minimum: 0
+                                  type: integer
+                                script:
+                                  description: script wraps the provided script in
+                                    /bin/sh -c.
+                                  type: string
+                                serviceAccountName:
+                                  description: serviceAccountName is the service account
+                                    for the Job pod.
+                                  type: string
+                              required:
+                              - image
+                              type: object
+                            maxRetries:
+                              description: maxRetries overrides the default number
+                                of transient-error retries for this action. Defaults
+                                to 5.
+                              format: int32
+                              maximum: 50
+                              minimum: 0
+                              type: integer
+                            name:
+                              description: name is a human-readable identifier for
+                                this action.
+                              minLength: 1
+                              type: string
+                            retryIntervalSeconds:
+                              description: retryIntervalSeconds overrides the default
+                                retry/poll interval for this action. Defaults to 5.
+                              format: int64
+                              maximum: 300
+                              minimum: 1
+                              type: integer
+                            scale:
+                              description: scale defines a scale action for a Deployment
+                                or StatefulSet.
+                              properties:
+                                kind:
+                                  description: 'kind is the resource kind: "Deployment"
+                                    or "StatefulSet".'
+                                  enum:
+                                  - Deployment
+                                  - StatefulSet
+                                  type: string
+                                name:
+                                  description: name is the resource name.
+                                  type: string
+                                replicas:
+                                  description: replicas is the desired replica count.
+                                  format: int32
+                                  minimum: 0
+                                  type: integer
+                                timeoutSeconds:
+                                  description: timeoutSeconds is how long to wait
+                                    for readiness when waitReady is true. Defaults
+                                    to 300.
+                                  format: int64
+                                  minimum: 1
+                                  type: integer
+                                waitReady:
+                                  description: waitReady causes the action to poll
+                                    until the resource is fully ready after scaling.
+                                  type: boolean
+                              required:
+                              - kind
+                              - name
+                              - replicas
+                              type: object
+                            waitReady:
+                              description: waitReady waits for a Deployment or StatefulSet
+                                to become fully ready.
+                              properties:
+                                kind:
+                                  description: 'kind is the resource kind: "Deployment"
+                                    or "StatefulSet".'
+                                  enum:
+                                  - Deployment
+                                  - StatefulSet
+                                  type: string
+                                name:
+                                  description: name is the resource name.
+                                  type: string
+                                timeoutSeconds:
+                                  description: timeoutSeconds is how long to wait
+                                    before failing. Defaults to 300.
+                                  format: int64
+                                  minimum: 1
+                                  type: integer
+                              required:
+                              - kind
+                              - name
+                              type: object
+                            waitRemote:
+                              description: waitRemote waits for the remote cluster
+                                to reach a specific phase or complete a named action.
+                              properties:
+                                actionName:
+                                  description: actionName waits for a named action
+                                    on the remote cluster to complete.
+                                  type: string
+                                actionTimeoutSeconds:
+                                  description: actionTimeoutSeconds is the timeout
+                                    for waiting for the condition. Defaults to 300.
+                                  format: int64
+                                  minimum: 1
+                                  type: integer
+                                connectTimeoutSeconds:
+                                  description: connectTimeoutSeconds is the timeout
+                                    for connecting to the remote cluster. Defaults
+                                    to 10.
+                                  format: int64
+                                  minimum: 1
+                                  type: integer
+                                phase:
+                                  description: |-
+                                    phase waits for the remote cluster's transition to reach or pass this phase.
+                                    An empty string means idle (no transition in progress).
+                                  enum:
+                                  - ""
+                                  - ExecutingPreActions
+                                  - UpdatingResources
+                                  - FlushingConnections
+                                  - ExecutingPostActions
+                                  type: string
+                              type: object
+                              x-kubernetes-validations:
+                              - message: exactly one of phase or actionName must be
+                                  set
+                                rule: '(has(self.phase) ? 1 : 0) + (has(self.actionName)
+                                  ? 1 : 0) == 1'
+                          required:
+                          - name
+                          type: object
+                          x-kubernetes-validations:
+                          - message: exactly one of http, job, scale, waitReady, or
+                              waitRemote must be set
+                            rule: '(has(self.http) ? 1 : 0) + (has(self.job) ? 1 :
+                              0) + (has(self.scale) ? 1 : 0) + (has(self.waitReady)
+                              ? 1 : 0) + (has(self.waitRemote) ? 1 : 0) == 1'
+                        type: array
+                    type: object
+                  onFailover:
+                    description: onFailover defines actions to run when transitioning
+                      to failover.
+                    properties:
+                      postActions:
+                        description: postActions are executed after connection flushing.
+                        items:
+                          description: |-
+                            FailoverAction defines a single action to execute during a transition.
+                            Exactly one of http, job, scale, waitReady, or waitRemote must be set.
+                          properties:
+                            http:
+                              description: http defines an HTTP request action.
+                              properties:
+                                body:
+                                  description: body is the request body.
+                                  type: string
+                                headers:
+                                  additionalProperties:
+                                    type: string
+                                  description: headers are additional HTTP headers
+                                    to include.
+                                  type: object
+                                method:
+                                  default: GET
+                                  description: method is the HTTP method. Defaults
+                                    to GET.
+                                  type: string
+                                timeoutSeconds:
+                                  description: timeoutSeconds is the HTTP request
+                                    timeout. Defaults to 30.
+                                  format: int64
+                                  minimum: 1
+                                  type: integer
+                                url:
+                                  description: url is the target URL.
+                                  minLength: 1
+                                  type: string
+                              required:
+                              - url
+                              type: object
+                            ignoreFailure:
+                              description: ignoreFailure allows the pipeline to continue
+                                even if this action fails.
+                              type: boolean
+                            job:
+                              description: job defines a Kubernetes Job action.
+                              properties:
+                                activeDeadlineSeconds:
+                                  description: activeDeadlineSeconds is the Job timeout.
+                                    Defaults to 300.
+                                  format: int64
+                                  minimum: 1
+                                  type: integer
+                                command:
+                                  description: command overrides the container entrypoint.
+                                  items:
+                                    type: string
+                                  type: array
+                                env:
+                                  description: env defines environment variables for
+                                    the Job container.
+                                  items:
+                                    description: EnvVar defines an environment variable
+                                      for a Job container.
+                                    properties:
+                                      name:
+                                        description: name is the environment variable
+                                          name.
+                                        type: string
+                                      value:
+                                        description: value is the environment variable
+                                          value.
+                                        type: string
+                                    required:
+                                    - name
+                                    - value
+                                    type: object
+                                  type: array
+                                image:
+                                  description: image is the container image to use.
+                                  type: string
+                                maxRetries:
+                                  description: maxRetries maps to Job backoffLimit.
+                                    Defaults to 0 (no retry).
+                                  format: int32
+                                  maximum: 10
+                                  minimum: 0
+                                  type: integer
+                                script:
+                                  description: script wraps the provided script in
+                                    /bin/sh -c.
+                                  type: string
+                                serviceAccountName:
+                                  description: serviceAccountName is the service account
+                                    for the Job pod.
+                                  type: string
+                              required:
+                              - image
+                              type: object
+                            maxRetries:
+                              description: maxRetries overrides the default number
+                                of transient-error retries for this action. Defaults
+                                to 5.
+                              format: int32
+                              maximum: 50
+                              minimum: 0
+                              type: integer
+                            name:
+                              description: name is a human-readable identifier for
+                                this action.
+                              minLength: 1
+                              type: string
+                            retryIntervalSeconds:
+                              description: retryIntervalSeconds overrides the default
+                                retry/poll interval for this action. Defaults to 5.
+                              format: int64
+                              maximum: 300
+                              minimum: 1
+                              type: integer
+                            scale:
+                              description: scale defines a scale action for a Deployment
+                                or StatefulSet.
+                              properties:
+                                kind:
+                                  description: 'kind is the resource kind: "Deployment"
+                                    or "StatefulSet".'
+                                  enum:
+                                  - Deployment
+                                  - StatefulSet
+                                  type: string
+                                name:
+                                  description: name is the resource name.
+                                  type: string
+                                replicas:
+                                  description: replicas is the desired replica count.
+                                  format: int32
+                                  minimum: 0
+                                  type: integer
+                                timeoutSeconds:
+                                  description: timeoutSeconds is how long to wait
+                                    for readiness when waitReady is true. Defaults
+                                    to 300.
+                                  format: int64
+                                  minimum: 1
+                                  type: integer
+                                waitReady:
+                                  description: waitReady causes the action to poll
+                                    until the resource is fully ready after scaling.
+                                  type: boolean
+                              required:
+                              - kind
+                              - name
+                              - replicas
+                              type: object
+                            waitReady:
+                              description: waitReady waits for a Deployment or StatefulSet
+                                to become fully ready.
+                              properties:
+                                kind:
+                                  description: 'kind is the resource kind: "Deployment"
+                                    or "StatefulSet".'
+                                  enum:
+                                  - Deployment
+                                  - StatefulSet
+                                  type: string
+                                name:
+                                  description: name is the resource name.
+                                  type: string
+                                timeoutSeconds:
+                                  description: timeoutSeconds is how long to wait
+                                    before failing. Defaults to 300.
+                                  format: int64
+                                  minimum: 1
+                                  type: integer
+                              required:
+                              - kind
+                              - name
+                              type: object
+                            waitRemote:
+                              description: waitRemote waits for the remote cluster
+                                to reach a specific phase or complete a named action.
+                              properties:
+                                actionName:
+                                  description: actionName waits for a named action
+                                    on the remote cluster to complete.
+                                  type: string
+                                actionTimeoutSeconds:
+                                  description: actionTimeoutSeconds is the timeout
+                                    for waiting for the condition. Defaults to 300.
+                                  format: int64
+                                  minimum: 1
+                                  type: integer
+                                connectTimeoutSeconds:
+                                  description: connectTimeoutSeconds is the timeout
+                                    for connecting to the remote cluster. Defaults
+                                    to 10.
+                                  format: int64
+                                  minimum: 1
+                                  type: integer
+                                phase:
+                                  description: |-
+                                    phase waits for the remote cluster's transition to reach or pass this phase.
+                                    An empty string means idle (no transition in progress).
+                                  enum:
+                                  - ""
+                                  - ExecutingPreActions
+                                  - UpdatingResources
+                                  - FlushingConnections
+                                  - ExecutingPostActions
+                                  type: string
+                              type: object
+                              x-kubernetes-validations:
+                              - message: exactly one of phase or actionName must be
+                                  set
+                                rule: '(has(self.phase) ? 1 : 0) + (has(self.actionName)
+                                  ? 1 : 0) == 1'
+                          required:
+                          - name
+                          type: object
+                          x-kubernetes-validations:
+                          - message: exactly one of http, job, scale, waitReady, or
+                              waitRemote must be set
+                            rule: '(has(self.http) ? 1 : 0) + (has(self.job) ? 1 :
+                              0) + (has(self.scale) ? 1 : 0) + (has(self.waitReady)
+                              ? 1 : 0) + (has(self.waitRemote) ? 1 : 0) == 1'
+                        type: array
+                      preActions:
+                        description: preActions are executed before the Service update.
+                        items:
+                          description: |-
+                            FailoverAction defines a single action to execute during a transition.
+                            Exactly one of http, job, scale, waitReady, or waitRemote must be set.
+                          properties:
+                            http:
+                              description: http defines an HTTP request action.
+                              properties:
+                                body:
+                                  description: body is the request body.
+                                  type: string
+                                headers:
+                                  additionalProperties:
+                                    type: string
+                                  description: headers are additional HTTP headers
+                                    to include.
+                                  type: object
+                                method:
+                                  default: GET
+                                  description: method is the HTTP method. Defaults
+                                    to GET.
+                                  type: string
+                                timeoutSeconds:
+                                  description: timeoutSeconds is the HTTP request
+                                    timeout. Defaults to 30.
+                                  format: int64
+                                  minimum: 1
+                                  type: integer
+                                url:
+                                  description: url is the target URL.
+                                  minLength: 1
+                                  type: string
+                              required:
+                              - url
+                              type: object
+                            ignoreFailure:
+                              description: ignoreFailure allows the pipeline to continue
+                                even if this action fails.
+                              type: boolean
+                            job:
+                              description: job defines a Kubernetes Job action.
+                              properties:
+                                activeDeadlineSeconds:
+                                  description: activeDeadlineSeconds is the Job timeout.
+                                    Defaults to 300.
+                                  format: int64
+                                  minimum: 1
+                                  type: integer
+                                command:
+                                  description: command overrides the container entrypoint.
+                                  items:
+                                    type: string
+                                  type: array
+                                env:
+                                  description: env defines environment variables for
+                                    the Job container.
+                                  items:
+                                    description: EnvVar defines an environment variable
+                                      for a Job container.
+                                    properties:
+                                      name:
+                                        description: name is the environment variable
+                                          name.
+                                        type: string
+                                      value:
+                                        description: value is the environment variable
+                                          value.
+                                        type: string
+                                    required:
+                                    - name
+                                    - value
+                                    type: object
+                                  type: array
+                                image:
+                                  description: image is the container image to use.
+                                  type: string
+                                maxRetries:
+                                  description: maxRetries maps to Job backoffLimit.
+                                    Defaults to 0 (no retry).
+                                  format: int32
+                                  maximum: 10
+                                  minimum: 0
+                                  type: integer
+                                script:
+                                  description: script wraps the provided script in
+                                    /bin/sh -c.
+                                  type: string
+                                serviceAccountName:
+                                  description: serviceAccountName is the service account
+                                    for the Job pod.
+                                  type: string
+                              required:
+                              - image
+                              type: object
+                            maxRetries:
+                              description: maxRetries overrides the default number
+                                of transient-error retries for this action. Defaults
+                                to 5.
+                              format: int32
+                              maximum: 50
+                              minimum: 0
+                              type: integer
+                            name:
+                              description: name is a human-readable identifier for
+                                this action.
+                              minLength: 1
+                              type: string
+                            retryIntervalSeconds:
+                              description: retryIntervalSeconds overrides the default
+                                retry/poll interval for this action. Defaults to 5.
+                              format: int64
+                              maximum: 300
+                              minimum: 1
+                              type: integer
+                            scale:
+                              description: scale defines a scale action for a Deployment
+                                or StatefulSet.
+                              properties:
+                                kind:
+                                  description: 'kind is the resource kind: "Deployment"
+                                    or "StatefulSet".'
+                                  enum:
+                                  - Deployment
+                                  - StatefulSet
+                                  type: string
+                                name:
+                                  description: name is the resource name.
+                                  type: string
+                                replicas:
+                                  description: replicas is the desired replica count.
+                                  format: int32
+                                  minimum: 0
+                                  type: integer
+                                timeoutSeconds:
+                                  description: timeoutSeconds is how long to wait
+                                    for readiness when waitReady is true. Defaults
+                                    to 300.
+                                  format: int64
+                                  minimum: 1
+                                  type: integer
+                                waitReady:
+                                  description: waitReady causes the action to poll
+                                    until the resource is fully ready after scaling.
+                                  type: boolean
+                              required:
+                              - kind
+                              - name
+                              - replicas
+                              type: object
+                            waitReady:
+                              description: waitReady waits for a Deployment or StatefulSet
+                                to become fully ready.
+                              properties:
+                                kind:
+                                  description: 'kind is the resource kind: "Deployment"
+                                    or "StatefulSet".'
+                                  enum:
+                                  - Deployment
+                                  - StatefulSet
+                                  type: string
+                                name:
+                                  description: name is the resource name.
+                                  type: string
+                                timeoutSeconds:
+                                  description: timeoutSeconds is how long to wait
+                                    before failing. Defaults to 300.
+                                  format: int64
+                                  minimum: 1
+                                  type: integer
+                              required:
+                              - kind
+                              - name
+                              type: object
+                            waitRemote:
+                              description: waitRemote waits for the remote cluster
+                                to reach a specific phase or complete a named action.
+                              properties:
+                                actionName:
+                                  description: actionName waits for a named action
+                                    on the remote cluster to complete.
+                                  type: string
+                                actionTimeoutSeconds:
+                                  description: actionTimeoutSeconds is the timeout
+                                    for waiting for the condition. Defaults to 300.
+                                  format: int64
+                                  minimum: 1
+                                  type: integer
+                                connectTimeoutSeconds:
+                                  description: connectTimeoutSeconds is the timeout
+                                    for connecting to the remote cluster. Defaults
+                                    to 10.
+                                  format: int64
+                                  minimum: 1
+                                  type: integer
+                                phase:
+                                  description: |-
+                                    phase waits for the remote cluster's transition to reach or pass this phase.
+                                    An empty string means idle (no transition in progress).
+                                  enum:
+                                  - ""
+                                  - ExecutingPreActions
+                                  - UpdatingResources
+                                  - FlushingConnections
+                                  - ExecutingPostActions
+                                  type: string
+                              type: object
+                              x-kubernetes-validations:
+                              - message: exactly one of phase or actionName must be
+                                  set
+                                rule: '(has(self.phase) ? 1 : 0) + (has(self.actionName)
+                                  ? 1 : 0) == 1'
+                          required:
+                          - name
+                          type: object
+                          x-kubernetes-validations:
+                          - message: exactly one of http, job, scale, waitReady, or
+                              waitRemote must be set
+                            rule: '(has(self.http) ? 1 : 0) + (has(self.job) ? 1 :
+                              0) + (has(self.scale) ? 1 : 0) + (has(self.waitReady)
+                              ? 1 : 0) + (has(self.waitRemote) ? 1 : 0) == 1'
+                        type: array
+                    type: object
+                  primaryModeAddress:
+                    description: primaryModeAddress is the address the local Service
+                      gets set to in primary mode.
+                    minLength: 1
+                    type: string
+                required:
+                - failoverModeAddress
+                - primaryModeAddress
+                type: object
+              ports:
+                description: ports defines the ports for the managed Service.
+                items:
+                  description: Port defines a port mapping for the failover service.
+                  properties:
+                    name:
+                      description: name is the name of the port (must be an IANA service
+                        name).
+                      maxLength: 15
+                      minLength: 1
+                      pattern: ^[a-z0-9]([a-z0-9\-]*[a-z0-9])?$
+                      type: string
+                    port:
+                      description: port is the port number.
+                      format: int32
+                      maximum: 65535
+                      minimum: 1
+                      type: integer
+                    protocol:
+                      default: TCP
+                      description: protocol is the protocol for the port. Defaults
+                        to TCP.
+                      enum:
+                      - TCP
+                      - UDP
+                      - SCTP
+                      type: string
+                  required:
+                  - name
+                  - port
+                  type: object
+                minItems: 1
+                type: array
+              primaryCluster:
+                description: primaryCluster defines the primary cluster target.
+                properties:
+                  failoverModeAddress:
+                    description: failoverModeAddress is the address the local Service
+                      gets set to in failover mode.
+                    minLength: 1
+                    type: string
+                  onFailback:
+                    description: onFailback defines actions to run when transitioning
+                      back to primary.
+                    properties:
+                      postActions:
+                        description: postActions are executed after connection flushing.
+                        items:
+                          description: |-
+                            FailoverAction defines a single action to execute during a transition.
+                            Exactly one of http, job, scale, waitReady, or waitRemote must be set.
+                          properties:
+                            http:
+                              description: http defines an HTTP request action.
+                              properties:
+                                body:
+                                  description: body is the request body.
+                                  type: string
+                                headers:
+                                  additionalProperties:
+                                    type: string
+                                  description: headers are additional HTTP headers
+                                    to include.
+                                  type: object
+                                method:
+                                  default: GET
+                                  description: method is the HTTP method. Defaults
+                                    to GET.
+                                  type: string
+                                timeoutSeconds:
+                                  description: timeoutSeconds is the HTTP request
+                                    timeout. Defaults to 30.
+                                  format: int64
+                                  minimum: 1
+                                  type: integer
+                                url:
+                                  description: url is the target URL.
+                                  minLength: 1
+                                  type: string
+                              required:
+                              - url
+                              type: object
+                            ignoreFailure:
+                              description: ignoreFailure allows the pipeline to continue
+                                even if this action fails.
+                              type: boolean
+                            job:
+                              description: job defines a Kubernetes Job action.
+                              properties:
+                                activeDeadlineSeconds:
+                                  description: activeDeadlineSeconds is the Job timeout.
+                                    Defaults to 300.
+                                  format: int64
+                                  minimum: 1
+                                  type: integer
+                                command:
+                                  description: command overrides the container entrypoint.
+                                  items:
+                                    type: string
+                                  type: array
+                                env:
+                                  description: env defines environment variables for
+                                    the Job container.
+                                  items:
+                                    description: EnvVar defines an environment variable
+                                      for a Job container.
+                                    properties:
+                                      name:
+                                        description: name is the environment variable
+                                          name.
+                                        type: string
+                                      value:
+                                        description: value is the environment variable
+                                          value.
+                                        type: string
+                                    required:
+                                    - name
+                                    - value
+                                    type: object
+                                  type: array
+                                image:
+                                  description: image is the container image to use.
+                                  type: string
+                                maxRetries:
+                                  description: maxRetries maps to Job backoffLimit.
+                                    Defaults to 0 (no retry).
+                                  format: int32
+                                  maximum: 10
+                                  minimum: 0
+                                  type: integer
+                                script:
+                                  description: script wraps the provided script in
+                                    /bin/sh -c.
+                                  type: string
+                                serviceAccountName:
+                                  description: serviceAccountName is the service account
+                                    for the Job pod.
+                                  type: string
+                              required:
+                              - image
+                              type: object
+                            maxRetries:
+                              description: maxRetries overrides the default number
+                                of transient-error retries for this action. Defaults
+                                to 5.
+                              format: int32
+                              maximum: 50
+                              minimum: 0
+                              type: integer
+                            name:
+                              description: name is a human-readable identifier for
+                                this action.
+                              minLength: 1
+                              type: string
+                            retryIntervalSeconds:
+                              description: retryIntervalSeconds overrides the default
+                                retry/poll interval for this action. Defaults to 5.
+                              format: int64
+                              maximum: 300
+                              minimum: 1
+                              type: integer
+                            scale:
+                              description: scale defines a scale action for a Deployment
+                                or StatefulSet.
+                              properties:
+                                kind:
+                                  description: 'kind is the resource kind: "Deployment"
+                                    or "StatefulSet".'
+                                  enum:
+                                  - Deployment
+                                  - StatefulSet
+                                  type: string
+                                name:
+                                  description: name is the resource name.
+                                  type: string
+                                replicas:
+                                  description: replicas is the desired replica count.
+                                  format: int32
+                                  minimum: 0
+                                  type: integer
+                                timeoutSeconds:
+                                  description: timeoutSeconds is how long to wait
+                                    for readiness when waitReady is true. Defaults
+                                    to 300.
+                                  format: int64
+                                  minimum: 1
+                                  type: integer
+                                waitReady:
+                                  description: waitReady causes the action to poll
+                                    until the resource is fully ready after scaling.
+                                  type: boolean
+                              required:
+                              - kind
+                              - name
+                              - replicas
+                              type: object
+                            waitReady:
+                              description: waitReady waits for a Deployment or StatefulSet
+                                to become fully ready.
+                              properties:
+                                kind:
+                                  description: 'kind is the resource kind: "Deployment"
+                                    or "StatefulSet".'
+                                  enum:
+                                  - Deployment
+                                  - StatefulSet
+                                  type: string
+                                name:
+                                  description: name is the resource name.
+                                  type: string
+                                timeoutSeconds:
+                                  description: timeoutSeconds is how long to wait
+                                    before failing. Defaults to 300.
+                                  format: int64
+                                  minimum: 1
+                                  type: integer
+                              required:
+                              - kind
+                              - name
+                              type: object
+                            waitRemote:
+                              description: waitRemote waits for the remote cluster
+                                to reach a specific phase or complete a named action.
+                              properties:
+                                actionName:
+                                  description: actionName waits for a named action
+                                    on the remote cluster to complete.
+                                  type: string
+                                actionTimeoutSeconds:
+                                  description: actionTimeoutSeconds is the timeout
+                                    for waiting for the condition. Defaults to 300.
+                                  format: int64
+                                  minimum: 1
+                                  type: integer
+                                connectTimeoutSeconds:
+                                  description: connectTimeoutSeconds is the timeout
+                                    for connecting to the remote cluster. Defaults
+                                    to 10.
+                                  format: int64
+                                  minimum: 1
+                                  type: integer
+                                phase:
+                                  description: |-
+                                    phase waits for the remote cluster's transition to reach or pass this phase.
+                                    An empty string means idle (no transition in progress).
+                                  enum:
+                                  - ""
+                                  - ExecutingPreActions
+                                  - UpdatingResources
+                                  - FlushingConnections
+                                  - ExecutingPostActions
+                                  type: string
+                              type: object
+                              x-kubernetes-validations:
+                              - message: exactly one of phase or actionName must be
+                                  set
+                                rule: '(has(self.phase) ? 1 : 0) + (has(self.actionName)
+                                  ? 1 : 0) == 1'
+                          required:
+                          - name
+                          type: object
+                          x-kubernetes-validations:
+                          - message: exactly one of http, job, scale, waitReady, or
+                              waitRemote must be set
+                            rule: '(has(self.http) ? 1 : 0) + (has(self.job) ? 1 :
+                              0) + (has(self.scale) ? 1 : 0) + (has(self.waitReady)
+                              ? 1 : 0) + (has(self.waitRemote) ? 1 : 0) == 1'
+                        type: array
+                      preActions:
+                        description: preActions are executed before the Service update.
+                        items:
+                          description: |-
+                            FailoverAction defines a single action to execute during a transition.
+                            Exactly one of http, job, scale, waitReady, or waitRemote must be set.
+                          properties:
+                            http:
+                              description: http defines an HTTP request action.
+                              properties:
+                                body:
+                                  description: body is the request body.
+                                  type: string
+                                headers:
+                                  additionalProperties:
+                                    type: string
+                                  description: headers are additional HTTP headers
+                                    to include.
+                                  type: object
+                                method:
+                                  default: GET
+                                  description: method is the HTTP method. Defaults
+                                    to GET.
+                                  type: string
+                                timeoutSeconds:
+                                  description: timeoutSeconds is the HTTP request
+                                    timeout. Defaults to 30.
+                                  format: int64
+                                  minimum: 1
+                                  type: integer
+                                url:
+                                  description: url is the target URL.
+                                  minLength: 1
+                                  type: string
+                              required:
+                              - url
+                              type: object
+                            ignoreFailure:
+                              description: ignoreFailure allows the pipeline to continue
+                                even if this action fails.
+                              type: boolean
+                            job:
+                              description: job defines a Kubernetes Job action.
+                              properties:
+                                activeDeadlineSeconds:
+                                  description: activeDeadlineSeconds is the Job timeout.
+                                    Defaults to 300.
+                                  format: int64
+                                  minimum: 1
+                                  type: integer
+                                command:
+                                  description: command overrides the container entrypoint.
+                                  items:
+                                    type: string
+                                  type: array
+                                env:
+                                  description: env defines environment variables for
+                                    the Job container.
+                                  items:
+                                    description: EnvVar defines an environment variable
+                                      for a Job container.
+                                    properties:
+                                      name:
+                                        description: name is the environment variable
+                                          name.
+                                        type: string
+                                      value:
+                                        description: value is the environment variable
+                                          value.
+                                        type: string
+                                    required:
+                                    - name
+                                    - value
+                                    type: object
+                                  type: array
+                                image:
+                                  description: image is the container image to use.
+                                  type: string
+                                maxRetries:
+                                  description: maxRetries maps to Job backoffLimit.
+                                    Defaults to 0 (no retry).
+                                  format: int32
+                                  maximum: 10
+                                  minimum: 0
+                                  type: integer
+                                script:
+                                  description: script wraps the provided script in
+                                    /bin/sh -c.
+                                  type: string
+                                serviceAccountName:
+                                  description: serviceAccountName is the service account
+                                    for the Job pod.
+                                  type: string
+                              required:
+                              - image
+                              type: object
+                            maxRetries:
+                              description: maxRetries overrides the default number
+                                of transient-error retries for this action. Defaults
+                                to 5.
+                              format: int32
+                              maximum: 50
+                              minimum: 0
+                              type: integer
+                            name:
+                              description: name is a human-readable identifier for
+                                this action.
+                              minLength: 1
+                              type: string
+                            retryIntervalSeconds:
+                              description: retryIntervalSeconds overrides the default
+                                retry/poll interval for this action. Defaults to 5.
+                              format: int64
+                              maximum: 300
+                              minimum: 1
+                              type: integer
+                            scale:
+                              description: scale defines a scale action for a Deployment
+                                or StatefulSet.
+                              properties:
+                                kind:
+                                  description: 'kind is the resource kind: "Deployment"
+                                    or "StatefulSet".'
+                                  enum:
+                                  - Deployment
+                                  - StatefulSet
+                                  type: string
+                                name:
+                                  description: name is the resource name.
+                                  type: string
+                                replicas:
+                                  description: replicas is the desired replica count.
+                                  format: int32
+                                  minimum: 0
+                                  type: integer
+                                timeoutSeconds:
+                                  description: timeoutSeconds is how long to wait
+                                    for readiness when waitReady is true. Defaults
+                                    to 300.
+                                  format: int64
+                                  minimum: 1
+                                  type: integer
+                                waitReady:
+                                  description: waitReady causes the action to poll
+                                    until the resource is fully ready after scaling.
+                                  type: boolean
+                              required:
+                              - kind
+                              - name
+                              - replicas
+                              type: object
+                            waitReady:
+                              description: waitReady waits for a Deployment or StatefulSet
+                                to become fully ready.
+                              properties:
+                                kind:
+                                  description: 'kind is the resource kind: "Deployment"
+                                    or "StatefulSet".'
+                                  enum:
+                                  - Deployment
+                                  - StatefulSet
+                                  type: string
+                                name:
+                                  description: name is the resource name.
+                                  type: string
+                                timeoutSeconds:
+                                  description: timeoutSeconds is how long to wait
+                                    before failing. Defaults to 300.
+                                  format: int64
+                                  minimum: 1
+                                  type: integer
+                              required:
+                              - kind
+                              - name
+                              type: object
+                            waitRemote:
+                              description: waitRemote waits for the remote cluster
+                                to reach a specific phase or complete a named action.
+                              properties:
+                                actionName:
+                                  description: actionName waits for a named action
+                                    on the remote cluster to complete.
+                                  type: string
+                                actionTimeoutSeconds:
+                                  description: actionTimeoutSeconds is the timeout
+                                    for waiting for the condition. Defaults to 300.
+                                  format: int64
+                                  minimum: 1
+                                  type: integer
+                                connectTimeoutSeconds:
+                                  description: connectTimeoutSeconds is the timeout
+                                    for connecting to the remote cluster. Defaults
+                                    to 10.
+                                  format: int64
+                                  minimum: 1
+                                  type: integer
+                                phase:
+                                  description: |-
+                                    phase waits for the remote cluster's transition to reach or pass this phase.
+                                    An empty string means idle (no transition in progress).
+                                  enum:
+                                  - ""
+                                  - ExecutingPreActions
+                                  - UpdatingResources
+                                  - FlushingConnections
+                                  - ExecutingPostActions
+                                  type: string
+                              type: object
+                              x-kubernetes-validations:
+                              - message: exactly one of phase or actionName must be
+                                  set
+                                rule: '(has(self.phase) ? 1 : 0) + (has(self.actionName)
+                                  ? 1 : 0) == 1'
+                          required:
+                          - name
+                          type: object
+                          x-kubernetes-validations:
+                          - message: exactly one of http, job, scale, waitReady, or
+                              waitRemote must be set
+                            rule: '(has(self.http) ? 1 : 0) + (has(self.job) ? 1 :
+                              0) + (has(self.scale) ? 1 : 0) + (has(self.waitReady)
+                              ? 1 : 0) + (has(self.waitRemote) ? 1 : 0) == 1'
+                        type: array
+                    type: object
+                  onFailover:
+                    description: onFailover defines actions to run when transitioning
+                      to failover.
+                    properties:
+                      postActions:
+                        description: postActions are executed after connection flushing.
+                        items:
+                          description: |-
+                            FailoverAction defines a single action to execute during a transition.
+                            Exactly one of http, job, scale, waitReady, or waitRemote must be set.
+                          properties:
+                            http:
+                              description: http defines an HTTP request action.
+                              properties:
+                                body:
+                                  description: body is the request body.
+                                  type: string
+                                headers:
+                                  additionalProperties:
+                                    type: string
+                                  description: headers are additional HTTP headers
+                                    to include.
+                                  type: object
+                                method:
+                                  default: GET
+                                  description: method is the HTTP method. Defaults
+                                    to GET.
+                                  type: string
+                                timeoutSeconds:
+                                  description: timeoutSeconds is the HTTP request
+                                    timeout. Defaults to 30.
+                                  format: int64
+                                  minimum: 1
+                                  type: integer
+                                url:
+                                  description: url is the target URL.
+                                  minLength: 1
+                                  type: string
+                              required:
+                              - url
+                              type: object
+                            ignoreFailure:
+                              description: ignoreFailure allows the pipeline to continue
+                                even if this action fails.
+                              type: boolean
+                            job:
+                              description: job defines a Kubernetes Job action.
+                              properties:
+                                activeDeadlineSeconds:
+                                  description: activeDeadlineSeconds is the Job timeout.
+                                    Defaults to 300.
+                                  format: int64
+                                  minimum: 1
+                                  type: integer
+                                command:
+                                  description: command overrides the container entrypoint.
+                                  items:
+                                    type: string
+                                  type: array
+                                env:
+                                  description: env defines environment variables for
+                                    the Job container.
+                                  items:
+                                    description: EnvVar defines an environment variable
+                                      for a Job container.
+                                    properties:
+                                      name:
+                                        description: name is the environment variable
+                                          name.
+                                        type: string
+                                      value:
+                                        description: value is the environment variable
+                                          value.
+                                        type: string
+                                    required:
+                                    - name
+                                    - value
+                                    type: object
+                                  type: array
+                                image:
+                                  description: image is the container image to use.
+                                  type: string
+                                maxRetries:
+                                  description: maxRetries maps to Job backoffLimit.
+                                    Defaults to 0 (no retry).
+                                  format: int32
+                                  maximum: 10
+                                  minimum: 0
+                                  type: integer
+                                script:
+                                  description: script wraps the provided script in
+                                    /bin/sh -c.
+                                  type: string
+                                serviceAccountName:
+                                  description: serviceAccountName is the service account
+                                    for the Job pod.
+                                  type: string
+                              required:
+                              - image
+                              type: object
+                            maxRetries:
+                              description: maxRetries overrides the default number
+                                of transient-error retries for this action. Defaults
+                                to 5.
+                              format: int32
+                              maximum: 50
+                              minimum: 0
+                              type: integer
+                            name:
+                              description: name is a human-readable identifier for
+                                this action.
+                              minLength: 1
+                              type: string
+                            retryIntervalSeconds:
+                              description: retryIntervalSeconds overrides the default
+                                retry/poll interval for this action. Defaults to 5.
+                              format: int64
+                              maximum: 300
+                              minimum: 1
+                              type: integer
+                            scale:
+                              description: scale defines a scale action for a Deployment
+                                or StatefulSet.
+                              properties:
+                                kind:
+                                  description: 'kind is the resource kind: "Deployment"
+                                    or "StatefulSet".'
+                                  enum:
+                                  - Deployment
+                                  - StatefulSet
+                                  type: string
+                                name:
+                                  description: name is the resource name.
+                                  type: string
+                                replicas:
+                                  description: replicas is the desired replica count.
+                                  format: int32
+                                  minimum: 0
+                                  type: integer
+                                timeoutSeconds:
+                                  description: timeoutSeconds is how long to wait
+                                    for readiness when waitReady is true. Defaults
+                                    to 300.
+                                  format: int64
+                                  minimum: 1
+                                  type: integer
+                                waitReady:
+                                  description: waitReady causes the action to poll
+                                    until the resource is fully ready after scaling.
+                                  type: boolean
+                              required:
+                              - kind
+                              - name
+                              - replicas
+                              type: object
+                            waitReady:
+                              description: waitReady waits for a Deployment or StatefulSet
+                                to become fully ready.
+                              properties:
+                                kind:
+                                  description: 'kind is the resource kind: "Deployment"
+                                    or "StatefulSet".'
+                                  enum:
+                                  - Deployment
+                                  - StatefulSet
+                                  type: string
+                                name:
+                                  description: name is the resource name.
+                                  type: string
+                                timeoutSeconds:
+                                  description: timeoutSeconds is how long to wait
+                                    before failing. Defaults to 300.
+                                  format: int64
+                                  minimum: 1
+                                  type: integer
+                              required:
+                              - kind
+                              - name
+                              type: object
+                            waitRemote:
+                              description: waitRemote waits for the remote cluster
+                                to reach a specific phase or complete a named action.
+                              properties:
+                                actionName:
+                                  description: actionName waits for a named action
+                                    on the remote cluster to complete.
+                                  type: string
+                                actionTimeoutSeconds:
+                                  description: actionTimeoutSeconds is the timeout
+                                    for waiting for the condition. Defaults to 300.
+                                  format: int64
+                                  minimum: 1
+                                  type: integer
+                                connectTimeoutSeconds:
+                                  description: connectTimeoutSeconds is the timeout
+                                    for connecting to the remote cluster. Defaults
+                                    to 10.
+                                  format: int64
+                                  minimum: 1
+                                  type: integer
+                                phase:
+                                  description: |-
+                                    phase waits for the remote cluster's transition to reach or pass this phase.
+                                    An empty string means idle (no transition in progress).
+                                  enum:
+                                  - ""
+                                  - ExecutingPreActions
+                                  - UpdatingResources
+                                  - FlushingConnections
+                                  - ExecutingPostActions
+                                  type: string
+                              type: object
+                              x-kubernetes-validations:
+                              - message: exactly one of phase or actionName must be
+                                  set
+                                rule: '(has(self.phase) ? 1 : 0) + (has(self.actionName)
+                                  ? 1 : 0) == 1'
+                          required:
+                          - name
+                          type: object
+                          x-kubernetes-validations:
+                          - message: exactly one of http, job, scale, waitReady, or
+                              waitRemote must be set
+                            rule: '(has(self.http) ? 1 : 0) + (has(self.job) ? 1 :
+                              0) + (has(self.scale) ? 1 : 0) + (has(self.waitReady)
+                              ? 1 : 0) + (has(self.waitRemote) ? 1 : 0) == 1'
+                        type: array
+                      preActions:
+                        description: preActions are executed before the Service update.
+                        items:
+                          description: |-
+                            FailoverAction defines a single action to execute during a transition.
+                            Exactly one of http, job, scale, waitReady, or waitRemote must be set.
+                          properties:
+                            http:
+                              description: http defines an HTTP request action.
+                              properties:
+                                body:
+                                  description: body is the request body.
+                                  type: string
+                                headers:
+                                  additionalProperties:
+                                    type: string
+                                  description: headers are additional HTTP headers
+                                    to include.
+                                  type: object
+                                method:
+                                  default: GET
+                                  description: method is the HTTP method. Defaults
+                                    to GET.
+                                  type: string
+                                timeoutSeconds:
+                                  description: timeoutSeconds is the HTTP request
+                                    timeout. Defaults to 30.
+                                  format: int64
+                                  minimum: 1
+                                  type: integer
+                                url:
+                                  description: url is the target URL.
+                                  minLength: 1
+                                  type: string
+                              required:
+                              - url
+                              type: object
+                            ignoreFailure:
+                              description: ignoreFailure allows the pipeline to continue
+                                even if this action fails.
+                              type: boolean
+                            job:
+                              description: job defines a Kubernetes Job action.
+                              properties:
+                                activeDeadlineSeconds:
+                                  description: activeDeadlineSeconds is the Job timeout.
+                                    Defaults to 300.
+                                  format: int64
+                                  minimum: 1
+                                  type: integer
+                                command:
+                                  description: command overrides the container entrypoint.
+                                  items:
+                                    type: string
+                                  type: array
+                                env:
+                                  description: env defines environment variables for
+                                    the Job container.
+                                  items:
+                                    description: EnvVar defines an environment variable
+                                      for a Job container.
+                                    properties:
+                                      name:
+                                        description: name is the environment variable
+                                          name.
+                                        type: string
+                                      value:
+                                        description: value is the environment variable
+                                          value.
+                                        type: string
+                                    required:
+                                    - name
+                                    - value
+                                    type: object
+                                  type: array
+                                image:
+                                  description: image is the container image to use.
+                                  type: string
+                                maxRetries:
+                                  description: maxRetries maps to Job backoffLimit.
+                                    Defaults to 0 (no retry).
+                                  format: int32
+                                  maximum: 10
+                                  minimum: 0
+                                  type: integer
+                                script:
+                                  description: script wraps the provided script in
+                                    /bin/sh -c.
+                                  type: string
+                                serviceAccountName:
+                                  description: serviceAccountName is the service account
+                                    for the Job pod.
+                                  type: string
+                              required:
+                              - image
+                              type: object
+                            maxRetries:
+                              description: maxRetries overrides the default number
+                                of transient-error retries for this action. Defaults
+                                to 5.
+                              format: int32
+                              maximum: 50
+                              minimum: 0
+                              type: integer
+                            name:
+                              description: name is a human-readable identifier for
+                                this action.
+                              minLength: 1
+                              type: string
+                            retryIntervalSeconds:
+                              description: retryIntervalSeconds overrides the default
+                                retry/poll interval for this action. Defaults to 5.
+                              format: int64
+                              maximum: 300
+                              minimum: 1
+                              type: integer
+                            scale:
+                              description: scale defines a scale action for a Deployment
+                                or StatefulSet.
+                              properties:
+                                kind:
+                                  description: 'kind is the resource kind: "Deployment"
+                                    or "StatefulSet".'
+                                  enum:
+                                  - Deployment
+                                  - StatefulSet
+                                  type: string
+                                name:
+                                  description: name is the resource name.
+                                  type: string
+                                replicas:
+                                  description: replicas is the desired replica count.
+                                  format: int32
+                                  minimum: 0
+                                  type: integer
+                                timeoutSeconds:
+                                  description: timeoutSeconds is how long to wait
+                                    for readiness when waitReady is true. Defaults
+                                    to 300.
+                                  format: int64
+                                  minimum: 1
+                                  type: integer
+                                waitReady:
+                                  description: waitReady causes the action to poll
+                                    until the resource is fully ready after scaling.
+                                  type: boolean
+                              required:
+                              - kind
+                              - name
+                              - replicas
+                              type: object
+                            waitReady:
+                              description: waitReady waits for a Deployment or StatefulSet
+                                to become fully ready.
+                              properties:
+                                kind:
+                                  description: 'kind is the resource kind: "Deployment"
+                                    or "StatefulSet".'
+                                  enum:
+                                  - Deployment
+                                  - StatefulSet
+                                  type: string
+                                name:
+                                  description: name is the resource name.
+                                  type: string
+                                timeoutSeconds:
+                                  description: timeoutSeconds is how long to wait
+                                    before failing. Defaults to 300.
+                                  format: int64
+                                  minimum: 1
+                                  type: integer
+                              required:
+                              - kind
+                              - name
+                              type: object
+                            waitRemote:
+                              description: waitRemote waits for the remote cluster
+                                to reach a specific phase or complete a named action.
+                              properties:
+                                actionName:
+                                  description: actionName waits for a named action
+                                    on the remote cluster to complete.
+                                  type: string
+                                actionTimeoutSeconds:
+                                  description: actionTimeoutSeconds is the timeout
+                                    for waiting for the condition. Defaults to 300.
+                                  format: int64
+                                  minimum: 1
+                                  type: integer
+                                connectTimeoutSeconds:
+                                  description: connectTimeoutSeconds is the timeout
+                                    for connecting to the remote cluster. Defaults
+                                    to 10.
+                                  format: int64
+                                  minimum: 1
+                                  type: integer
+                                phase:
+                                  description: |-
+                                    phase waits for the remote cluster's transition to reach or pass this phase.
+                                    An empty string means idle (no transition in progress).
+                                  enum:
+                                  - ""
+                                  - ExecutingPreActions
+                                  - UpdatingResources
+                                  - FlushingConnections
+                                  - ExecutingPostActions
+                                  type: string
+                              type: object
+                              x-kubernetes-validations:
+                              - message: exactly one of phase or actionName must be
+                                  set
+                                rule: '(has(self.phase) ? 1 : 0) + (has(self.actionName)
+                                  ? 1 : 0) == 1'
+                          required:
+                          - name
+                          type: object
+                          x-kubernetes-validations:
+                          - message: exactly one of http, job, scale, waitReady, or
+                              waitRemote must be set
+                            rule: '(has(self.http) ? 1 : 0) + (has(self.job) ? 1 :
+                              0) + (has(self.scale) ? 1 : 0) + (has(self.waitReady)
+                              ? 1 : 0) + (has(self.waitRemote) ? 1 : 0) == 1'
+                        type: array
+                    type: object
+                  primaryModeAddress:
+                    description: primaryModeAddress is the address the local Service
+                      gets set to in primary mode.
+                    minLength: 1
+                    type: string
+                required:
+                - failoverModeAddress
+                - primaryModeAddress
+                type: object
+              serviceName:
+                description: serviceName is the name of the Kubernetes Service to
+                  create/manage.
+                maxLength: 63
+                minLength: 1
+                pattern: ^[a-z0-9]([a-z0-9\-]*[a-z0-9])?$
+                type: string
+                x-kubernetes-validations:
+                - message: serviceName is immutable
+                  rule: self == oldSelf
+            required:
+            - failoverCluster
+            - ports
+            - primaryCluster
+            - serviceName
+            type: object
+          status:
+            description: status defines the observed state of FailoverService
+            properties:
+              activeCluster:
+                description: |-
+                  activeCluster is the cluster ID that last completed a transition.
+                  System-managed; used for conflict resolution.
+                type: string
+              activeGeneration:
+                description: |-
+                  activeGeneration is a monotonic counter incremented on each completed transition.
+                  System-managed; used for conflict resolution.
+                format: int64
+                type: integer
+              clusters:
+                description: clusters tracks per-cluster observed state for observability.
+                items:
+                  description: ClusterStatus tracks the observed state of a single
+                    cluster.
+                  properties:
+                    appliedGeneration:
+                      description: appliedGeneration is the activeGeneration that
+                        this cluster has fully applied.
+                      format: int64
+                      type: integer
+                    clusterID:
+                      description: clusterID is the unique identifier for this cluster.
+                      type: string
+                    lastAppliedTime:
+                      description: lastAppliedTime is when this cluster last completed
+                        a transition.
+                      format: date-time
+                      type: string
+                    phase:
+                      description: phase is the current phase of this cluster's transition
+                        (empty when idle).
+                      enum:
+                      - ""
+                      - ExecutingPreActions
+                      - UpdatingResources
+                      - FlushingConnections
+                      - ExecutingPostActions
+                      type: string
+                  required:
+                  - clusterID
+                  type: object
+                type: array
+                x-kubernetes-list-map-keys:
+                - clusterID
+                x-kubernetes-list-type: map
+              conditions:
+                description: conditions represent the current state of the FailoverService
+                  resource.
+                items:
+                  description: Condition contains details for one aspect of the current
+                    state of this API Resource.
+                  properties:
+                    lastTransitionTime:
+                      description: |-
+                        lastTransitionTime is the last time the condition transitioned from one status to another.
+                        This should be when the underlying condition changed.  If that is not known, then using the time when the API field changed is acceptable.
+                      format: date-time
+                      type: string
+                    message:
+                      description: |-
+                        message is a human readable message indicating details about the transition.
+                        This may be an empty string.
+                      maxLength: 32768
+                      type: string
+                    observedGeneration:
+                      description: |-
+                        observedGeneration represents the .metadata.generation that the condition was set based upon.
+                        For instance, if .metadata.generation is currently 12, but the .status.conditions[x].observedGeneration is 9, the condition is out of date
+                        with respect to the current state of the instance.
+                      format: int64
+                      minimum: 0
+                      type: integer
+                    reason:
+                      description: |-
+                        reason contains a programmatic identifier indicating the reason for the condition's last transition.
+                        Producers of specific condition types may define expected values and meanings for this field,
+                        and whether the values are considered a guaranteed API.
+                        The value should be a CamelCase string.
+                        This field may not be empty.
+                      maxLength: 1024
+                      minLength: 1
+                      pattern: ^[A-Za-z]([A-Za-z0-9_,:]*[A-Za-z0-9_])?$
+                      type: string
+                    status:
+                      description: status of the condition, one of True, False, Unknown.
+                      enum:
+                      - "True"
+                      - "False"
+                      - Unknown
+                      type: string
+                    type:
+                      description: type of condition in CamelCase or in foo.example.com/CamelCase.
+                      maxLength: 316
+                      pattern: ^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*/)?(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])$
+                      type: string
+                  required:
+                  - lastTransitionTime
+                  - message
+                  - reason
+                  - status
+                  - type
+                  type: object
+                type: array
+                x-kubernetes-list-map-keys:
+                - type
+                x-kubernetes-list-type: map
+              lastKnownFailoverActive:
+                description: |-
+                  lastKnownFailoverActive is the last known value of spec.failoverActive,
+                  used to detect transitions.
+                type: boolean
+              lastTransitionTime:
+                description: lastTransitionTime is the last time the failover state
+                  transitioned.
+                format: date-time
+                type: string
+              observedGeneration:
+                description: observedGeneration is the most recent generation observed.
+                format: int64
+                type: integer
+              remoteState:
+                description: remoteState holds the last known state from the remote
+                  cluster.
+                properties:
+                  activeCluster:
+                    description: activeCluster is the cluster ID that last completed
+                      a transition on the remote.
+                    type: string
+                  activeGeneration:
+                    description: activeGeneration is the remote cluster's system-managed
+                      generation counter.
+                    format: int64
+                    type: integer
+                  clusterID:
+                    description: clusterID is the unique identifier of the remote
+                      cluster.
+                    type: string
+                  failoverActive:
+                    description: failoverActive indicates whether failover is active
+                      on the remote cluster.
+                    type: boolean
+                  lastSyncTime:
+                    description: lastSyncTime is the last time the remote state was
+                      synced.
+                    format: date-time
+                    type: string
+                  specChangeTime:
+                    description: specChangeTime is the timestamp when the remote cluster's
+                      spec.failoverActive last changed.
+                    format: date-time
+                    type: string
+                type: object
+              specChangeTime:
+                description: |-
+                  specChangeTime records when spec.failoverActive last changed value.
+                  Used for timestamp-based conflict resolution tiebreaking.
+                format: date-time
+                type: string
+              transition:
+                description: transition tracks the progress of an in-flight transition.
+                properties:
+                  connectionKill:
+                    description: connectionKill tracks connection kill progress during
+                      the FlushingConnections phase.
+                    properties:
+                      ackedNodes:
+                        description: ackedNodes is the list of nodes that have successfully
+                          ACKed.
+                        items:
+                          type: string
+                        type: array
+                      expectedNodes:
+                        description: expectedNodes is the list of node names that
+                          should ACK the kill.
+                        items:
+                          type: string
+                        type: array
+                      killToken:
+                        description: killToken is the unique token for this kill operation,
+                          used to match ACKs.
+                        type: string
+                      signalSent:
+                        description: signalSent indicates whether the kill signal
+                          has been sent.
+                        type: boolean
+                      signaledAt:
+                        description: signaledAt is when the kill signal was sent.
+                        format: date-time
+                        type: string
+                    type: object
+                  currentActionIndex:
+                    description: currentActionIndex is the index of the current action
+                      being executed.
+                    type: integer
+                  eventName:
+                    description: eventName links this transition to its FailoverEvent
+                      resource.
+                    type: string
+                  newAddressSnapshot:
+                    description: |-
+                      newAddressSnapshot is the address selected for this transition at start time.
+                      Used for service updates to avoid spec-edit races mid-transition.
+                    type: string
+                  oldAddressSnapshot:
+                    description: |-
+                      oldAddressSnapshot is the address that was active when this transition started.
+                      Used by connection flushing to avoid spec-edit races mid-transition.
+                    type: string
+                  phase:
+                    description: phase is the current phase of the transition.
+                    enum:
+                    - ""
+                    - ExecutingPreActions
+                    - UpdatingResources
+                    - FlushingConnections
+                    - ExecutingPostActions
+                    type: string
+                  postActionResults:
+                    description: postActionResults tracks the status of each post-action.
+                    items:
+                      description: ActionResult tracks the status of a single action
+                        execution.
+                      properties:
+                        completedAt:
+                          description: completedAt is when this action finished.
+                          format: date-time
+                          type: string
+                        jobName:
+                          description: jobName is the name of the Job created for
+                            job-type actions.
+                          type: string
+                        message:
+                          description: message contains additional details.
+                          type: string
+                        name:
+                          description: name is the action name.
+                          type: string
+                        retryCount:
+                          description: retryCount tracks how many transient errors
+                            have occurred for this action.
+                          type: integer
+                        startedAt:
+                          description: startedAt is when this action started.
+                          format: date-time
+                          type: string
+                        status:
+                          description: 'status is one of: Pending, Running, Succeeded,
+                            Failed, Skipped.'
+                          type: string
+                      required:
+                      - name
+                      - status
+                      type: object
+                    type: array
+                  preActionResults:
+                    description: preActionResults tracks the status of each pre-action.
+                    items:
+                      description: ActionResult tracks the status of a single action
+                        execution.
+                      properties:
+                        completedAt:
+                          description: completedAt is when this action finished.
+                          format: date-time
+                          type: string
+                        jobName:
+                          description: jobName is the name of the Job created for
+                            job-type actions.
+                          type: string
+                        message:
+                          description: message contains additional details.
+                          type: string
+                        name:
+                          description: name is the action name.
+                          type: string
+                        retryCount:
+                          description: retryCount tracks how many transient errors
+                            have occurred for this action.
+                          type: integer
+                        startedAt:
+                          description: startedAt is when this action started.
+                          format: date-time
+                          type: string
+                        status:
+                          description: 'status is one of: Pending, Running, Succeeded,
+                            Failed, Skipped.'
+                          type: string
+                      required:
+                      - name
+                      - status
+                      type: object
+                    type: array
+                  startedAt:
+                    description: startedAt is when the transition began.
+                    format: date-time
+                    type: string
+                  targetDirection:
+                    description: targetDirection is either "failover" or "failback".
+                    type: string
+                  transitionID:
+                    description: |-
+                      transitionID is a unique identifier for this transition, used to prevent
+                      Job name collisions across transitions. Derived from the transition start time.
+                    type: string
+                type: object
+            type: object
+        required:
+        - spec
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}

@@ -1,0 +1,1 @@
+Do not edit generated files such as config/crd/bases/*.yaml, config/rbac/role.yaml, or zz_generated.* directly; regenerate them with project commands. Preserve Kubebuilder scaffold markers. Go code follows standard gofmt formatting and project linting through golangci-lint. Tests are standard Go tests plus envtest-backed controller tests.

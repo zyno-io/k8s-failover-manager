@@ -1,0 +1,11 @@
+Useful commands on this Darwin workspace:
+- `rg <pattern>` and `rg --files` for fast search
+- `make manifests` after editing api/v1alpha1/*_types.go
+- `make generate` after editing api/v1alpha1/*_types.go
+- `make lint-fix` after Go edits
+- `make test` for unit/envtest coverage run
+- `go test ./...` for a quick plain test pass
+- `make build` to build the controller
+- `make build-connection-killer` to build the Linux-only agent
+- `make deploy IMG=<image>` to deploy via Helm
+- `make test-e2e` for Kind-based e2e tests

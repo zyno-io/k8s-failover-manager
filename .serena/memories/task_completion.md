@@ -1,0 +1,1 @@
+After editing Go files, run `make lint-fix` and `make test`. After editing api/v1alpha1/*_types.go, also run `make manifests` and `make generate`. If Helm or docs behavior changes, sanity-check the matching templates/docs for accuracy.

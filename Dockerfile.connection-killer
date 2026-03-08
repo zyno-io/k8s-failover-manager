@@ -1,0 +1,19 @@
+# Build the connection-killer binary
+FROM golang:1.26 AS builder
+ARG TARGETOS
+ARG TARGETARCH
+
+WORKDIR /workspace
+COPY go.mod go.mod
+COPY go.sum go.sum
+RUN go mod download
+
+COPY . .
+
+RUN CGO_ENABLED=0 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH} GOTOOLCHAIN=local go build -a -o connection-killer cmd/connection-killer/main.go
+
+FROM gcr.io/distroless/static:latest
+WORKDIR /
+COPY --from=builder /workspace/connection-killer .
+
+ENTRYPOINT ["/connection-killer"]

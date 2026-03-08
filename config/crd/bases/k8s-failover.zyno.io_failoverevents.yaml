@@ -1,0 +1,210 @@
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.20.1
+  name: failoverevents.k8s-failover.zyno.io
+spec:
+  group: k8s-failover.zyno.io
+  names:
+    kind: FailoverEvent
+    listKind: FailoverEventList
+    plural: failoverevents
+    singular: failoverevent
+  scope: Namespaced
+  versions:
+  - additionalPrinterColumns:
+    - jsonPath: .spec.failoverServiceRef
+      name: Service
+      type: string
+    - jsonPath: .spec.direction
+      name: Direction
+      type: string
+    - jsonPath: .status.outcome
+      name: Outcome
+      type: string
+    - jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: FailoverEvent records a transition event for a FailoverService.
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: spec defines the event specification
+            properties:
+              direction:
+                description: 'direction is the transition direction: "failover" or
+                  "failback".'
+                enum:
+                - failover
+                - failback
+                type: string
+              failoverServiceRef:
+                description: failoverServiceRef is the name of the FailoverService
+                  this event belongs to.
+                type: string
+              triggeredBy:
+                description: 'triggeredBy indicates what triggered this transition:
+                  "manual" or "remote-sync".'
+                enum:
+                - manual
+                - remote-sync
+                type: string
+            required:
+            - direction
+            - failoverServiceRef
+            - triggeredBy
+            type: object
+          status:
+            description: status defines the observed state of the event
+            properties:
+              activeGenerationAfter:
+                description: activeGenerationAfter is the activeGeneration after the
+                  transition.
+                format: int64
+                type: integer
+              activeGenerationBefore:
+                description: activeGenerationBefore is the activeGeneration before
+                  the transition.
+                format: int64
+                type: integer
+              completedAt:
+                description: completedAt is when the transition finished.
+                format: date-time
+                type: string
+              connectionKillResult:
+                description: connectionKillResult tracks connection kill outcome.
+                properties:
+                  ackedNodes:
+                    description: ackedNodes is the list of nodes that have successfully
+                      ACKed.
+                    items:
+                      type: string
+                    type: array
+                  expectedNodes:
+                    description: expectedNodes is the list of node names that should
+                      ACK the kill.
+                    items:
+                      type: string
+                    type: array
+                  killToken:
+                    description: killToken is the unique token for this kill operation,
+                      used to match ACKs.
+                    type: string
+                  signalSent:
+                    description: signalSent indicates whether the kill signal has
+                      been sent.
+                    type: boolean
+                  signaledAt:
+                    description: signaledAt is when the kill signal was sent.
+                    format: date-time
+                    type: string
+                type: object
+              outcome:
+                description: 'outcome is the result of the transition: Succeeded,
+                  Failed, ForceAdvanced, or InProgress.'
+                type: string
+              postActionResults:
+                description: postActionResults tracks the status of each post-action.
+                items:
+                  description: ActionResult tracks the status of a single action execution.
+                  properties:
+                    completedAt:
+                      description: completedAt is when this action finished.
+                      format: date-time
+                      type: string
+                    jobName:
+                      description: jobName is the name of the Job created for job-type
+                        actions.
+                      type: string
+                    message:
+                      description: message contains additional details.
+                      type: string
+                    name:
+                      description: name is the action name.
+                      type: string
+                    retryCount:
+                      description: retryCount tracks how many transient errors have
+                        occurred for this action.
+                      type: integer
+                    startedAt:
+                      description: startedAt is when this action started.
+                      format: date-time
+                      type: string
+                    status:
+                      description: 'status is one of: Pending, Running, Succeeded,
+                        Failed, Skipped.'
+                      type: string
+                  required:
+                  - name
+                  - status
+                  type: object
+                type: array
+              preActionResults:
+                description: preActionResults tracks the status of each pre-action.
+                items:
+                  description: ActionResult tracks the status of a single action execution.
+                  properties:
+                    completedAt:
+                      description: completedAt is when this action finished.
+                      format: date-time
+                      type: string
+                    jobName:
+                      description: jobName is the name of the Job created for job-type
+                        actions.
+                      type: string
+                    message:
+                      description: message contains additional details.
+                      type: string
+                    name:
+                      description: name is the action name.
+                      type: string
+                    retryCount:
+                      description: retryCount tracks how many transient errors have
+                        occurred for this action.
+                      type: integer
+                    startedAt:
+                      description: startedAt is when this action started.
+                      format: date-time
+                      type: string
+                    status:
+                      description: 'status is one of: Pending, Running, Succeeded,
+                        Failed, Skipped.'
+                      type: string
+                  required:
+                  - name
+                  - status
+                  type: object
+                type: array
+              startedAt:
+                description: startedAt is when the transition began.
+                format: date-time
+                type: string
+            type: object
+        required:
+        - spec
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}

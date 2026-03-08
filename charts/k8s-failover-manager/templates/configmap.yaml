@@ -1,0 +1,21 @@
+{{- if not .Values.failoverConfig.clusterId }}
+{{- fail "failoverConfig.clusterId is required" }}
+{{- end }}
+{{- if not .Values.failoverConfig.remoteKubeconfigSecret }}
+{{- fail "failoverConfig.remoteKubeconfigSecret is required" }}
+{{- end }}
+{{- if not .Values.failoverConfig.remoteKubeconfigNamespace }}
+{{- fail "failoverConfig.remoteKubeconfigNamespace is required" }}
+{{- end }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "k8s-failover-manager.fullname" . }}-config
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "k8s-failover-manager.labels" . | nindent 4 }}
+data:
+  cluster-role: {{ .Values.failoverConfig.clusterRole | quote }}
+  cluster-id: {{ .Values.failoverConfig.clusterId | quote }}
+  remote-kubeconfig-secret: {{ .Values.failoverConfig.remoteKubeconfigSecret | quote }}
+  remote-kubeconfig-namespace: {{ .Values.failoverConfig.remoteKubeconfigNamespace | quote }}

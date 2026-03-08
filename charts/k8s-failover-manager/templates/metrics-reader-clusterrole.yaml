@@ -1,0 +1,13 @@
+{{- if .Values.metrics.enabled }}
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{ include "k8s-failover-manager.fullname" . }}-metrics-reader
+  labels:
+    {{- include "k8s-failover-manager.labels" . | nindent 4 }}
+rules:
+  - nonResourceURLs:
+      - "/metrics"
+    verbs:
+      - get
+{{- end }}

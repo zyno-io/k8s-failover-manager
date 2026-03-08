@@ -1,0 +1,6 @@
+apiVersion: v2
+name: k8s-failover-manager
+description: A Kubernetes operator that orchestrates automated failover for DNS-based services across two clusters.
+type: application
+version: 0.1.0
+appVersion: "0.1.0"

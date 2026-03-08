@@ -1,0 +1,72 @@
+# Failover controller configuration (written to the <release>-config ConfigMap)
+failoverConfig:
+  # clusterRole must be "primary" or "failover"
+  clusterRole: primary
+  # clusterId is a unique identifier for this cluster (e.g. "us-east-1"). Required.
+  clusterId: ""
+  # remoteKubeconfigSecret is the name of a Secret containing the remote cluster's kubeconfig. Required.
+  remoteKubeconfigSecret: ""
+  # remoteKubeconfigNamespace is the namespace of the remote kubeconfig Secret. Required.
+  remoteKubeconfigNamespace: ""
+
+# Controller manager image
+image:
+  repository: controller
+  tag: latest
+  # Overrides tag when set. Use for immutable image references (e.g. sha256:abc...).
+  digest: ""
+  pullPolicy: IfNotPresent
+
+# Controller resource limits
+resources:
+  limits:
+    cpu: 500m
+    memory: 128Mi
+  requests:
+    cpu: 10m
+    memory: 64Mi
+
+# Connection killer DaemonSet
+connectionKiller:
+  enabled: true
+  image:
+    repository: connection-killer
+    tag: latest
+    # Overrides tag when set. Use for immutable image references (e.g. sha256:abc...).
+    digest: ""
+    pullPolicy: IfNotPresent
+  resources:
+    limits:
+      cpu: 100m
+      memory: 64Mi
+    requests:
+      cpu: 10m
+      memory: 32Mi
+
+# Metrics configuration
+metrics:
+  # Enable the metrics Service
+  enabled: true
+  # Port for the metrics endpoint
+  port: 8443
+
+# ServiceMonitor for Prometheus Operator
+serviceMonitor:
+  enabled: false
+  # Additional labels for the ServiceMonitor
+  labels: {}
+  tlsConfig:
+    # Safer default. Set true only if you cannot validate the metrics cert chain.
+    insecureSkipVerify: false
+    # CA file path mounted in the Prometheus pod for verifying the metrics TLS cert.
+    # Required when insecureSkipVerify is false. Example: /etc/prometheus/certs/ca.crt
+    caFile: ""
+    # Optional SNI/certificate server name override
+    serverName: ""
+
+# Number of controller replicas (should be 1 for leader election)
+replicaCount: 1
+
+# Leader election is enabled by default
+leaderElection:
+  enabled: true

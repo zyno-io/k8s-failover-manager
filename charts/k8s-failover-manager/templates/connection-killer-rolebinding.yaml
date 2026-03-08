@@ -1,0 +1,18 @@
+{{- if .Values.connectionKiller.enabled }}
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: {{ include "k8s-failover-manager.fullname" . }}-connection-killer
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "k8s-failover-manager.labels" . | nindent 4 }}
+    app.kubernetes.io/component: connection-killer
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: {{ include "k8s-failover-manager.fullname" . }}-connection-killer
+subjects:
+  - kind: ServiceAccount
+    name: {{ include "k8s-failover-manager.connectionKillerServiceAccountName" . }}
+    namespace: {{ .Release.Namespace }}
+{{- end }}

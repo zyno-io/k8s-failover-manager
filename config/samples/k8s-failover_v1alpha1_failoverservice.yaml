@@ -1,0 +1,64 @@
+apiVersion: k8s-failover.zyno.io/v1alpha1
+kind: FailoverService
+metadata:
+  labels:
+    app.kubernetes.io/name: k8s-failover-manager
+    app.kubernetes.io/managed-by: kustomize
+  name: mysql-failover
+  namespace: default
+spec:
+  serviceName: mysql-dns-alias
+  ports:
+    - name: mysql
+      port: 3306
+      protocol: TCP
+  failoverActive: false
+  primaryCluster:
+    primaryModeAddress: "mysql-primary.mysql.svc.cluster.local"
+    failoverModeAddress: "192.168.50.60" # remote cluster; may be a LoadBalancer IP, NodePort, etc.
+    onFailover:
+      preActions:
+        - name: drain-primary
+          http:
+            url: "http://mysql-primary.mysql.svc.cluster.local:9090/drain"
+            method: POST
+      postActions:
+        - name: scale-down-workers
+          scale:
+            kind: Deployment
+            name: mysql-workers
+            replicas: 0
+    onFailback:
+      preActions:
+        - name: scale-up-workers
+          scale:
+            kind: Deployment
+            name: mysql-workers
+            replicas: 3
+        - name: wait-workers-ready
+          waitReady:
+            kind: Deployment
+            name: mysql-workers
+            timeoutSeconds: 120
+  failoverCluster:
+    primaryModeAddress: "10.20.30.40" # remote cluster; may be a LoadBalancer IP, NodePort, etc.
+    failoverModeAddress: "mysql-failover.mysql.svc.cluster.local"
+    onFailover:
+      preActions:
+        - name: promote-replica
+          job:
+            image: "mysql:8.0"
+            serviceAccountName: mysql-admin
+            script: |
+              mysql -h localhost -e "STOP REPLICA; RESET REPLICA ALL;"
+            activeDeadlineSeconds: 120
+            maxRetries: 2
+      postActions:
+        - name: notify-slack
+          http:
+            url: "https://hooks.slack.com/services/XXX"
+            method: POST
+            headers:
+              Content-Type: "application/json"
+            body: '{"text":"Failover complete"}'
+          ignoreFailure: true
